@@ -1,0 +1,76 @@
+body { overflow: hidden; }
+
+.layout {
+  height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(280px, 24vw, 420px);
+}
+
+/* ---- stage: the video and overlays on top of it ---- */
+.stage { position: relative; background: #000; display: grid; place-items: center; overflow: hidden; }
+.player-frame { width: 100%; max-height: 100%; aspect-ratio: 16 / 9; }
+.player-frame iframe, #player { width: 100%; height: 100%; border: 0; display: block; }
+
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 4vw; }
+
+.idle {
+  background:
+    radial-gradient(60% 50% at 20% 20%, rgba(255, 79, 139, .25), transparent 70%),
+    radial-gradient(50% 50% at 85% 80%, rgba(255, 181, 71, .18), transparent 70%),
+    var(--bg);
+}
+.idle .logo { font-size: clamp(40px, 6vw, 96px); margin: 0 0 .2em; }
+.idle-lead { font-size: clamp(18px, 2vw, 30px); color: var(--text-dim); margin: 0 0 24px; }
+.idle-qr { width: clamp(180px, 22vw, 320px); margin: 0 auto; border-radius: 16px; background: #fff; padding: 10px; }
+.idle-url { font-size: clamp(16px, 1.6vw, 24px); margin-top: 16px; }
+
+.intermission {
+  background: radial-gradient(70% 60% at 50% 40%, rgba(255, 79, 139, .3), transparent 70%), rgba(8, 7, 12, .96);
+  align-content: center; gap: 0;
+}
+.im-singer { font-family: var(--font-display); font-weight: 800; font-size: clamp(48px, 9vw, 150px); margin: .05em 0; line-height: 1; letter-spacing: -.03em; }
+.im-title { font-size: clamp(20px, 2.4vw, 38px); color: var(--text-dim); max-width: 32ch; margin: .4em auto 0; }
+.im-count { margin-top: 5vh; }
+.im-count span {
+  display: inline-grid; place-items: center; width: 2.4em; height: 2.4em; border-radius: 50%;
+  font: 800 clamp(20px, 2.2vw, 34px) var(--font-display); box-shadow: inset 0 0 0 3px var(--accent); color: var(--accent);
+}
+
+/* ---- sidebar ---- */
+.side {
+  display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--bg-raised); border-left: 1px solid var(--line); min-height: 0;
+}
+.side > * { padding: 22px 24px; }
+.eyebrow { text-transform: uppercase; letter-spacing: .12em; font-size: 12px; font-weight: 700; color: var(--accent-2); margin: 0 0 8px; }
+
+.now { border-bottom: 1px solid var(--line); }
+.now-singer { font-family: var(--font-display); font-weight: 800; font-size: clamp(28px, 2.6vw, 44px); margin: 0; line-height: 1.05; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.now-title { margin: 6px 0 0; font-size: 15px; }
+
+.next { overflow: hidden; min-height: 0; display: flex; flex-direction: column; }
+.up-next { list-style: none; padding: 0; margin: 0; overflow-y: auto; display: grid; gap: 4px; }
+.up-next li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.up-next .n { font: 800 18px var(--font-display); color: var(--text-faint); }
+.up-next .who { font-weight: 700; font-size: 17px; }
+.up-next .what { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+.up-next .x { background: none; border: 0; color: var(--text-faint); font-size: 18px; opacity: 0; padding: 0 4px; }
+.up-next li:hover .x { opacity: 1; }
+.up-next .x:hover { color: var(--danger); }
+
+.join { display: grid; grid-template-columns: 112px 1fr; gap: 16px; align-items: center; border-top: 1px solid var(--line); background: var(--bg-sunken); }
+.join .qr { width: 112px; height: 112px; background: #fff; border-radius: 10px; padding: 6px; }
+.room-code { font: 800 34px var(--font-display); letter-spacing: .14em; margin: 0; }
+.join-url { color: var(--text-dim); font-size: 13px; margin: 2px 0 0; overflow-wrap: anywhere; }
+
+/* ---- start gate ---- */
+.start { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: var(--bg); text-align: center; padding: 24px; }
+.start .logo { font-size: clamp(44px, 8vw, 110px); margin: 0; }
+.start p { font-size: 18px; }
+.btn.big { font-size: 22px; padding: 18px 40px; margin: 18px 0; }
+.small-print { font-size: 14px !important; line-height: 1.6; }
+
+@media (max-width: 800px) {
+  .layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  body { overflow: auto; }
+}

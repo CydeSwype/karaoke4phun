@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>karaoke4phun · TV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/host.css">
+</head>
+<body>
+  <div id="start" class="start">
+    <div class="start-inner">
+      <h1 class="logo">karaoke<b>4</b>phun</h1>
+      <p class="dim">Put this screen on the TV. Everyone joins from their phone.</p>
+      <button id="start-btn" class="btn big">Start the party</button>
+      <p class="faint small-print">Starting turns on sound (browsers need a click first).<br>Shortcuts: Space pause · N skip · F fullscreen</p>
+    </div>
+  </div>
+
+  <main class="layout">
+    <section class="stage">
+      <div class="player-frame"><div id="player"></div></div>
+
+      <div id="idle" class="overlay idle">
+        <div class="idle-copy">
+          <h1 class="logo">karaoke<b>4</b>phun</h1>
+          <p class="idle-lead">Scan to pick a song</p>
+          <img class="idle-qr qr" alt="QR code to join the party">
+          <p class="join-url idle-url"></p>
+        </div>
+      </div>
+
+      <div id="intermission" class="overlay intermission hidden">
+        <p class="eyebrow">Next up</p>
+        <h2 id="im-singer" class="im-singer"></h2>
+        <p id="im-title" class="im-title clamp"></p>
+        <div class="im-count"><span id="im-count"></span></div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <div class="now">
+        <p class="eyebrow">Now singing</p>
+        <h2 id="now-singer" class="now-singer">—</h2>
+        <p id="now-title" class="now-title clamp dim">Nobody yet</p>
+      </div>
+
+      <div class="next">
+        <p class="eyebrow">Up next <span id="next-count" class="faint"></span></p>
+        <ol id="up-next" class="up-next"></ol>
+        <p id="empty-next" class="faint">The queue is empty — add a song!</p>
+      </div>
+
+      <div class="join">
+        <img class="qr" alt="QR code to join the party">
+        <div>
+          <p class="eyebrow">Join</p>
+          <p class="room-code" id="room-code">····</p>
+          <p class="join-url"></p>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <div class="toasts" id="toasts"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/common.js"></script>
+  <script src="/host.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>karaoke4phun</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body { display: grid; place-items: center; min-height: 100dvh; padding: 24px 16px; text-align: center;
+      background: radial-gradient(60% 50% at 30% 20%, rgba(255,79,139,.2), transparent 70%), var(--bg); }
+    h1 { font-size: clamp(44px, 10vw, 88px); margin: 0 0 8px; }
+    .cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); max-width: 640px; margin: 32px auto 0; }
+    .card { background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; display: grid; gap: 12px; }
+    .card h2 { margin: 0; font-size: 20px; }
+    .card p { margin: 0; color: var(--text-dim); font-size: 14px; }
+    .card a { text-decoration: none; }
+    form { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    input { background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 10px 16px; text-transform: uppercase; letter-spacing: .15em; font-weight: 700; width: 100%; outline: none; }
+    input:focus { border-color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1 class="logo">karaoke<b>4</b>phun</h1>
+    <p class="dim">Karaoke night with YouTube, a TV, and everyone's phones.</p>
+    <div class="cards">
+      <div class="card">
+        <h2>📺 This is the TV</h2>
+        <p>Open the big screen that plays songs and shows the queue.</p>
+        <a class="btn" href="/host">Open TV screen</a>
+      </div>
+      <div class="card">
+        <h2>📱 Join a party</h2>
+        <p>Enter the 4-letter code shown on the TV.</p>
+        <form id="join">
+          <input id="code" maxlength="4" placeholder="CODE" autocomplete="off" required aria-label="Party code">
+          <button class="btn">Join</button>
+        </form>
+      </div>
+    </div>
+  </main>
+  <script>
+    document.getElementById('join').addEventListener('submit', (e) => {
+      e.preventDefault();
+      location.href = '/r/' + document.getElementById('code').value.trim().toUpperCase();
+    });
+  </script>
+</body>
+</html>

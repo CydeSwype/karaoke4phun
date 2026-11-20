@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d0b14">
+  <title>karaoke4phun</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/remote.css">
+</head>
+<body>
+  <header class="top">
+    <span class="logo">k<b>4</b>p</span>
+    <span class="code">Party <strong id="code">····</strong></span>
+    <button id="me" class="me hidden" title="Change your name"></button>
+  </header>
+
+  <!-- First visit: ask for a name -->
+  <section id="name-screen" class="name-screen hidden">
+    <h1 class="logo">karaoke<b>4</b>phun</h1>
+    <form id="name-form">
+      <label for="name-input">What should the TV call you?</label>
+      <input id="name-input" maxlength="24" autocomplete="nickname" placeholder="Your name" required>
+      <button class="btn">Join the party</button>
+    </form>
+  </section>
+
+  <section id="app" class="app hidden">
+    <div class="now-card" id="now-card">
+      <img class="thumb" id="now-thumb" alt="">
+      <div class="now-info">
+        <p class="eyebrow">Now singing</p>
+        <p class="now-singer" id="now-singer">Nobody yet</p>
+        <p class="now-title dim clamp" id="now-title">Add a song to get things going</p>
+      </div>
+      <div class="controls" id="controls">
+        <button class="ctl" data-cmd="restart" title="Restart" aria-label="Restart">⟲</button>
+        <button class="ctl" id="playpause" title="Pause" aria-label="Pause">❚❚</button>
+        <button class="ctl" data-cmd="skip" title="Skip" aria-label="Skip">⏭</button>
+      </div>
+    </div>
+
+    <nav class="tabs" role="tablist">
+      <button role="tab" class="tab active" data-tab="search" aria-selected="true">Add a song</button>
+      <button role="tab" class="tab" data-tab="queue" aria-selected="false">Queue <span id="queue-badge" class="badge hidden"></span></button>
+    </nav>
+
+    <div id="tab-search" class="panel">
+      <form id="search-form" class="search">
+        <input id="q" type="search" enterkeyhint="search" autocomplete="off" placeholder="Song or artist">
+        <button class="btn">Search</button>
+      </form>
+      <label class="toggle">
+        <input type="checkbox" id="karaoke-only" checked>
+        <span>Karaoke versions only</span>
+      </label>
+      <p id="search-hint" class="hint faint"></p>
+      <ul id="results" class="results"></ul>
+    </div>
+
+    <div id="tab-queue" class="panel hidden">
+      <p id="my-turn" class="my-turn hidden"></p>
+      <ol id="queue" class="queue"></ol>
+      <p id="queue-empty" class="hint faint">Nothing queued. Be the first!</p>
+    </div>
+  </section>
+
+  <div class="toasts" id="toasts"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/common.js"></script>
+  <script src="/remote.js"></script>
+</body>
+</html>
