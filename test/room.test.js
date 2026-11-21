@@ -134,3 +134,7 @@ test('replacing a song keeps its singer and place; only owner or host may', () =
   room.replaceSong(a.id, vid(8), { singerId: 'A' });
   assert.equal(room.upcoming()[0].videoId, vid(8).videoId);
 });
+
+test('the TV shows the sidebar and plays between-song music by default', () => {
+  assert.deepEqual(new Room('TEST').display, { sidebar: true, music: true });
+});

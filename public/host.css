@@ -1,12 +1,14 @@
 body { overflow: hidden; }
 
 .layout {
+  --side-w: clamp(280px, 24vw, 420px);
   height: 100vh;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(280px, 24vw, 420px);
+  grid-template-columns: minmax(0, 1fr) var(--side-w);
+  transition: grid-template-columns var(--dur-slow) var(--ease);
 }
-.layout.no-side { grid-template-columns: minmax(0, 1fr); }
-.layout.no-side .side { display: none; }
+/* Same track count either way so the column width can animate; the sidebar keeps its width and is clipped. */
+.layout.no-side { grid-template-columns: minmax(0, 1fr) 0px; }
 
 /* ---- stage: the video and overlays on top of it ---- */
 .stage { position: relative; background: #000; display: grid; place-items: center; overflow: hidden; }
@@ -42,8 +44,10 @@ body { overflow: hidden; }
 .side {
   display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
   background: var(--bg-raised); border-left: 1px solid var(--line); min-height: 0;
+  overflow: hidden; transition: opacity var(--dur) var(--ease), visibility 0s;
 }
-.side > * { padding: 22px 24px; }
+.side > * { padding: 22px 24px; width: var(--side-w); }
+.layout.no-side .side { opacity: 0; visibility: hidden; border-left-width: 0; transition: opacity var(--dur) var(--ease), visibility 0s var(--dur-slow); }
 .eyebrow { text-transform: uppercase; letter-spacing: .12em; font-size: 12px; font-weight: 700; color: var(--accent-2); margin: 0 0 8px; }
 
 .now { border-bottom: 1px solid var(--line); }
@@ -73,7 +77,9 @@ body { overflow: hidden; }
 .small-print { font-size: 14px !important; line-height: 1.6; }
 
 @media (max-width: 800px) {
-  .layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .layout, .layout.no-side { grid-template-columns: 1fr; grid-template-rows: auto 1fr; transition: none; }
+  .layout.no-side .side { display: none; }
+  .side > * { width: auto; }
   body { overflow: auto; }
 }
 

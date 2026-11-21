@@ -169,6 +169,7 @@ function renderForSinger() {
 
 function renderHostTab() {
   $('#tv-sidebar').checked = state.display?.sidebar !== false;
+  $('#tv-music').checked = state.display?.music !== false;
   const custom = state.mode === 'custom';
   $('#order-desc').textContent = custom
     ? 'Custom order you set. New songs go to the end.'
@@ -400,6 +401,9 @@ $('#tab-queue').addEventListener('click', async (ev) => {
 
 $('#tv-sidebar').addEventListener('change', (ev) =>
   call(socket, 'admin:display', { sidebar: ev.target.checked }).catch((e) => toast(e.message, { error: true })),
+);
+$('#tv-music').addEventListener('change', (ev) =>
+  call(socket, 'admin:display', { music: ev.target.checked }).catch((e) => toast(e.message, { error: true })),
 );
 $('#fair-btn').addEventListener('click', () => call(socket, 'admin:fair').catch((e) => toast(e.message, { error: true })));
 

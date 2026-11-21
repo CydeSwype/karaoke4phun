@@ -49,6 +49,7 @@ socket.on('room:state', (s) => {
   state = s;
   renderSidebar();
   syncPlayback();
+  syncMusic();
 });
 socket.on('player:command', ({ action }) => {
   if (!playerReady || !state?.nowPlaying) return;
@@ -106,6 +107,13 @@ function syncPlayback() {
   showIntermission(now, () => player.loadVideoById(now.videoId));
 }
 
+// Background music plays whenever nothing is on the player: waiting for the first song, or between songs.
+function syncMusic() {
+  const gap = !state?.nowPlaying || intermissionTimer !== null;
+  if (started && gap && state?.display?.music !== false) MUSIC.play();
+  else MUSIC.stop();
+}
+
 function showIntermission(entry, then) {
   clearIntermission();
   clearTimeout(statusTimer);
@@ -123,12 +131,14 @@ function showIntermission(entry, then) {
       then();
     }
   }, 1000);
+  syncMusic();
 }
 
 function clearIntermission() {
   clearInterval(intermissionTimer);
   intermissionTimer = null;
   $('#intermission').classList.add('hidden');
+  syncMusic();
 }
 
 let statusTimer = null;
@@ -173,6 +183,8 @@ window.onYouTubeIframeAPIReady = () => {
 
 $('#start-btn').addEventListener('click', () => {
   started = true;
+  MUSIC.unlock(); // needs this click to be allowed to make sound
+  syncMusic();
   $('#start').classList.add('hidden');
   const s = document.createElement('script');
   s.src = 'https://www.youtube.com/iframe_api';
@@ -188,6 +200,9 @@ document.addEventListener('keydown', (ev) => {
   if (!started) return;
   if (key === 's' && state) {
     call(socket, 'admin:display', { sidebar: state.display?.sidebar === false }).catch(() => {});
+  }
+  if (key === 'm' && state) {
+    call(socket, 'admin:display', { music: state.display?.music === false }).catch(() => {});
   }
   if (key === ' ' && playerReady) {
     ev.preventDefault();

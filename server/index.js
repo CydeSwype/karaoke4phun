@@ -168,9 +168,11 @@ io.on('connection', (socket) => {
     broadcast(r);
   }));
 
-  socket.on('admin:display', handle(({ sidebar }) => {
+  socket.on('admin:display', handle(({ sidebar, music }) => {
     const r = requireAdmin();
-    r.display = { ...r.display, sidebar: Boolean(sidebar) };
+    // Only change the settings that were sent.
+    if (sidebar !== undefined) r.display = { ...r.display, sidebar: Boolean(sidebar) };
+    if (music !== undefined) r.display = { ...r.display, music: Boolean(music) };
     broadcast(r);
   }));
 

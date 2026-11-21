@@ -14,7 +14,16 @@
   --radius: 14px;
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-display: 'Bricolage Grotesque', var(--font);
+  /* Motion: one curve, three speeds. Fast-out/slow-in so things settle softly. */
+  --ease: cubic-bezier(.22, 1, .36, 1);
+  --dur-fast: .15s;
+  --dur: .25s;
+  --dur-slow: .4s;
   color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
 * { box-sizing: border-box; }
@@ -35,7 +44,7 @@ img { display: block; }
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   border: 0; border-radius: 999px; padding: 12px 22px;
   background: var(--accent); color: var(--accent-ink); font-weight: 700;
-  transition: transform .08s ease, filter .15s ease;
+  transition: transform var(--dur-fast) var(--ease), filter var(--dur-fast) var(--ease);
 }
 .btn:hover { filter: brightness(1.08); }
 .btn:active { transform: scale(.97); }
@@ -54,7 +63,10 @@ img { display: block; }
 .toasts { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); display: grid; gap: 8px; z-index: 50; width: min(92vw, 520px); }
 .toast {
   background: var(--text); color: var(--bg); padding: 12px 18px; border-radius: 12px; font-weight: 600;
-  box-shadow: 0 10px 30px rgba(0,0,0,.4); animation: toast-in .2s ease;
+  box-shadow: 0 10px 30px rgba(0,0,0,.4); animation: toast-in var(--dur) var(--ease);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
 }
+.toast.leaving { opacity: 0; transform: translateY(8px); }
 .toast.error { background: var(--danger); color: #1a0505; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes fade-in { from { opacity: 0; } }

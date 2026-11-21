@@ -25,7 +25,7 @@ export class Room {
     this.singers = new Map(); // id -> { id, name, turnKey, sung }
     this.pending = []; // in 'fair' mode: the order songs were added; in 'custom' mode: play order
     this.mode = 'fair';
-    this.display = { sidebar: true }; // what the TV shows; set from the host's phone
+    this.display = { sidebar: true, music: true }; // what the TV shows; set from the host's phone
     this.nowPlaying = null;
     this.history = [];
     this.clock = 0; // increases every time someone takes a turn or joins the rotation
