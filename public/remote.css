@@ -144,3 +144,9 @@ select {
 .sheet-actions .btn { flex: 1; }
 .sheet-actions #preview-action { flex: 2; }
 .banner .btn { flex: none; white-space: nowrap; }
+
+/* ---- install prompt ---- */
+.install { margin-top: 12px; }
+.install .btn { flex: none; white-space: nowrap; }
+.install-x { flex: none; background: none; border: 0; color: var(--text-faint); font-size: 16px; padding: 4px 6px; }
+.name-screen .hint a, .hint a { color: var(--accent); }
