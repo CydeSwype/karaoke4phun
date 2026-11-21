@@ -4,7 +4,7 @@ import path from 'node:path';
 import express from 'express';
 import { Server } from 'socket.io';
 import QRCode from 'qrcode';
-import { Room, makeRoomCode } from './room.js';
+import { Room, makeRoomCode, isHostKey } from './room.js';
 import { search, lookup, parseVideoId, loadCache, hasApiKey } from './youtube.js';
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -26,6 +26,7 @@ const io = new Server(server);
 
 app.use(express.static(path.resolve('public'), { extensions: ['html'] }));
 app.get('/r/:code', (_req, res) => res.sendFile(path.resolve('public/remote.html')));
+app.get('/a/:code', (_req, res) => res.sendFile(path.resolve('public/audience.html')));
 
 app.get('/api/config', (_req, res) => res.json({ baseUrl: publicBaseUrl(), searchEnabled: hasApiKey() }));
 
@@ -66,58 +67,110 @@ const handle = (fn) => async (payload, ack) => {
 
 io.on('connection', (socket) => {
   let room = null;
-  let role = null; // 'host' | 'remote'
+  let role = null; // 'tv' (main screen) | 'remote' (phone) | 'audience' (second screen)
+  let isAdmin = false; // the TV, or a phone that opened the host link
   let clientId = null;
 
   const requireRoom = () => {
     if (!room) throw new Error('Not in a party');
     return room;
   };
-  const sendToHost = (event, data) => io.to(`${room.code}:host`).emit(event, data);
+  const requireAdmin = () => {
+    if (!isAdmin) throw new Error('Only the host can do that');
+    return requireRoom();
+  };
+  const sendToTv = (event, data) => io.to(`${room.code}:tv`).emit(event, data);
 
-  socket.on('host:open', handle(({ code }) => {
-    // Reuse the TV's previous code when possible, so phones keep working after a server restart.
+  socket.on('host:open', handle(({ code, hostKey }) => {
+    // Reopen the TV's previous party if it proves it owns it (hostKey). After a server restart,
+    // recreate it under the same code and key so phones, including the host's, keep working.
     const wanted = String(code ?? '').toUpperCase();
-    room = rooms.get(wanted) ?? null;
-    if (!room) {
-      room = new Room(/^[A-Z]{4}$/.test(wanted) ? wanted : makeRoomCode(new Set(rooms.keys())));
-      rooms.set(room.code, room);
-    }
-    role = 'host';
+    const existing = rooms.get(wanted);
+    if (existing && existing.hostKey === hostKey) room = existing;
+    else if (!existing && /^[A-Z]{4}$/.test(wanted) && isHostKey(hostKey)) room = new Room(wanted, hostKey);
+    else room = new Room(makeRoomCode(new Set(rooms.keys())));
+    rooms.set(room.code, room);
+    role = 'tv';
+    isAdmin = true;
     socket.join(room.code);
-    socket.join(`${room.code}:host`);
+    socket.join(`${room.code}:tv`);
     room.touch();
     socket.emit('room:state', room.snapshot());
-    return { code: room.code };
+    return { code: room.code, hostKey: room.hostKey };
   }));
 
-  socket.on('remote:join', handle(({ code, clientId: id, name }) => {
+  socket.on('remote:join', handle(({ code, clientId: id, name, hostKey }) => {
     const r = rooms.get(String(code ?? '').toUpperCase());
     if (!r) throw new Error('No party with that code — check the code on the TV');
     if (!/^[\w-]{8,64}$/.test(String(id))) throw new Error('Bad client id');
     room = r;
     role = 'remote';
     clientId = id;
+    isAdmin = Boolean(hostKey) && hostKey === r.hostKey;
     const singer = room.upsertSinger(clientId, name);
     socket.join(room.code);
     broadcast(room);
-    return { name: singer.name };
+    if (room.playback) socket.emit('player:status', room.playback);
+    return { name: singer.name, isAdmin };
   }));
 
-  socket.on('song:add', handle(({ video }) => {
+  socket.on('audience:join', handle(({ code }) => {
+    const r = rooms.get(String(code ?? '').toUpperCase());
+    if (!r) throw new Error('No party with that code');
+    room = r;
+    role = 'audience';
+    socket.join(room.code);
+    socket.emit('room:state', room.snapshot());
+    // age lets the audience screen work out where the video is now, not when this was reported.
+    if (room.playback) socket.emit('player:status', { ...room.playback, age: (Date.now() - room.playback.at) / 1000 });
+    return { code: room.code };
+  }));
+
+  socket.on('song:add', handle(({ video, forSinger }) => {
     const r = requireRoom();
     if (role !== 'remote') throw new Error('Only singers can add songs');
-    const entry = r.addSong(clientId, video);
+    let singerId = clientId;
+    if (forSinger) {
+      // The host can add songs for other people, including guests without a phone.
+      requireAdmin();
+      if (forSinger.id && r.singers.has(forSinger.id)) singerId = forSinger.id;
+      else singerId = r.upsertGuest(forSinger.name).id;
+    }
+    const entry = r.addSong(singerId, video);
     const startNow = !r.nowPlaying;
     if (startNow) r.advance();
     broadcast(r);
     const position = startNow ? 0 : r.upcoming().findIndex((e) => e.id === entry.id) + 1;
-    return { position };
+    return { position, singerName: r.singers.get(singerId).name };
+  }));
+
+  socket.on('song:replace', handle(({ entryId, video }) => {
+    const r = requireRoom();
+    r.replaceSong(entryId, video, { singerId: clientId, isHost: isAdmin });
+    broadcast(r);
   }));
 
   socket.on('song:remove', handle(({ entryId }) => {
     const r = requireRoom();
-    r.removeSong(entryId, { singerId: clientId, isHost: role === 'host' });
+    r.removeSong(entryId, { singerId: clientId, isHost: isAdmin });
+    broadcast(r);
+  }));
+
+  socket.on('admin:move', handle(({ entryId, toIndex }) => {
+    const r = requireAdmin();
+    r.moveSong(entryId, toIndex);
+    broadcast(r);
+  }));
+
+  socket.on('admin:fair', handle(() => {
+    const r = requireAdmin();
+    r.useFairOrder();
+    broadcast(r);
+  }));
+
+  socket.on('admin:display', handle(({ sidebar }) => {
+    const r = requireAdmin();
+    r.display = { ...r.display, sidebar: Boolean(sidebar) };
     broadcast(r);
   }));
 
@@ -125,7 +178,7 @@ io.on('connection', (socket) => {
   socket.on('player:command', handle(({ action }) => {
     requireRoom();
     if (!['play', 'pause', 'restart'].includes(action)) throw new Error('Unknown action');
-    sendToHost('player:command', { action });
+    sendToTv('player:command', { action });
   }));
 
   socket.on('song:skip', handle(({ entryId }) => {
@@ -140,14 +193,23 @@ io.on('connection', (socket) => {
   // Sent by the TV when a video finishes or YouTube refuses to play it.
   socket.on('player:ended', handle(({ entryId, error }) => {
     const r = requireRoom();
-    if (role !== 'host' || r.nowPlaying?.id !== entryId) return;
+    if (role !== 'tv' || r.nowPlaying?.id !== entryId) return;
     if (error) io.to(r.code).emit('room:notice', { message: `Couldn't play “${r.nowPlaying.title}” (${error}) — skipping` });
     r.advance();
     broadcast(r);
   }));
 
-  socket.on('player:status', (status) => {
-    if (role === 'host' && room) socket.to(room.code).emit('player:status', { playing: Boolean(status?.playing) });
+  // The TV reports what it's playing; phones show play/pause and the audience screen syncs to it.
+  socket.on('player:status', (s) => {
+    if (role !== 'tv' || !room) return;
+    room.playback = {
+      entryId: String(s?.entryId ?? ''),
+      videoId: String(s?.videoId ?? ''),
+      playing: Boolean(s?.playing),
+      time: Number(s?.time) || 0,
+      at: Date.now(),
+    };
+    socket.to(room.code).emit('player:status', room.playback);
   });
 });
 

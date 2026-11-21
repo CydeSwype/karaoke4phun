@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>karaoke4phun · Audience</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/audience.css">
+</head>
+<body>
+  <main class="screen">
+    <section class="stage">
+      <div class="player-frame"><div id="player"></div></div>
+
+      <div id="idle" class="overlay idle">
+        <div>
+          <h1 class="logo">karaoke<b>4</b>phun</h1>
+          <p class="idle-lead">Scan to pick a song</p>
+          <img class="idle-qr qr" alt="QR code to join the party">
+          <p class="join-url"></p>
+        </div>
+      </div>
+
+      <div id="intermission" class="overlay intermission hidden">
+        <div>
+          <p class="eyebrow">Next up</p>
+          <h2 id="im-singer" class="im-singer"></h2>
+          <p id="im-title" class="im-title clamp"></p>
+        </div>
+      </div>
+
+      <div class="corner-qr" id="corner-qr">
+        <img class="qr" alt="QR code to join the party">
+        <span>Sing!<br><strong id="code">····</strong></span>
+      </div>
+
+      <button id="sound" class="sound" title="The main TV has the sound. Click to turn it on here too.">🔇 Sound off</button>
+    </section>
+
+    <footer class="ticker">
+      <div class="now-chip" id="now-chip">
+        <span class="eyebrow">Now</span>
+        <span class="now-singer" id="now-singer">—</span>
+        <span class="now-title" id="now-title"></span>
+      </div>
+      <div class="marquee" id="marquee">
+        <div class="marquee-track" id="marquee-track"></div>
+      </div>
+    </footer>
+  </main>
+
+  <div class="toasts" id="toasts"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/common.js"></script>
+  <script src="/audience.js"></script>
+</body>
+</html>

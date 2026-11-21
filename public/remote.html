@@ -14,6 +14,7 @@
   <header class="top">
     <span class="logo">k<b>4</b>p</span>
     <span class="code">Party <strong id="code">····</strong></span>
+    <span id="host-badge" class="host-badge hidden">HOST</span>
     <button id="me" class="me hidden" title="Change your name"></button>
   </header>
 
@@ -42,12 +43,21 @@
       </div>
     </div>
 
-    <nav class="tabs" role="tablist">
+    <nav class="tabs" role="tablist" id="tabs">
       <button role="tab" class="tab active" data-tab="search" aria-selected="true">Add a song</button>
       <button role="tab" class="tab" data-tab="queue" aria-selected="false">Queue <span id="queue-badge" class="badge hidden"></span></button>
+      <button role="tab" class="tab hidden" data-tab="host" aria-selected="false" id="host-tab">Host</button>
     </nav>
 
     <div id="tab-search" class="panel">
+      <div id="replace-banner" class="banner hidden">
+        <div>Picking a new version of <strong id="replace-what"></strong></div>
+        <button class="btn ghost small" id="replace-cancel">Cancel</button>
+      </div>
+      <label id="for-row" class="for-row hidden">
+        <span>Adding for</span>
+        <select id="for-singer"></select>
+      </label>
       <form id="search-form" class="search">
         <input id="q" type="search" enterkeyhint="search" autocomplete="off" placeholder="Song or artist">
         <button class="btn">Search</button>
@@ -62,10 +72,47 @@
 
     <div id="tab-queue" class="panel hidden">
       <p id="my-turn" class="my-turn hidden"></p>
+      <div id="order-banner" class="banner hidden"></div>
       <ol id="queue" class="queue"></ol>
       <p id="queue-empty" class="hint faint">Nothing queued. Be the first!</p>
     </div>
+
+    <div id="tab-host" class="panel hidden">
+      <div class="setting">
+        <div>
+          <strong>Queue sidebar on the TV</strong>
+          <p class="faint">Hide it for a full-screen video.</p>
+        </div>
+        <label class="switch"><input type="checkbox" id="tv-sidebar"><span></span></label>
+      </div>
+      <div class="setting">
+        <div>
+          <strong>Order</strong>
+          <p class="faint" id="order-desc"></p>
+        </div>
+        <button class="btn ghost small" id="fair-btn">Use fair rotation</button>
+      </div>
+      <h3 class="section-title">Singers tonight</h3>
+      <ul id="singers" class="singers"></ul>
+      <h3 class="section-title">Audience screen</h3>
+      <p class="faint">Open this on a second TV or laptop to show the video and who's up next:</p>
+      <p class="audience-link"><a id="audience-link" target="_blank" rel="noopener"></a></p>
+    </div>
   </section>
+
+  <!-- Preview: plays a video on this phone only -->
+  <div id="preview" class="sheet hidden" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+    <div class="sheet-inner">
+      <div class="preview-frame" id="preview-frame"></div>
+      <p class="r-title" id="preview-title"></p>
+      <p class="r-meta" id="preview-meta"></p>
+      <p class="faint preview-note">Plays on your phone only.</p>
+      <div class="sheet-actions">
+        <button class="btn ghost" id="preview-close">Close</button>
+        <button class="btn" id="preview-action">Add</button>
+      </div>
+    </div>
+  </div>
 
   <div class="toasts" id="toasts"></div>
 

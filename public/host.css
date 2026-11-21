@@ -5,6 +5,8 @@ body { overflow: hidden; }
   display: grid;
   grid-template-columns: minmax(0, 1fr) clamp(280px, 24vw, 420px);
 }
+.layout.no-side { grid-template-columns: minmax(0, 1fr); }
+.layout.no-side .side { display: none; }
 
 /* ---- stage: the video and overlays on top of it ---- */
 .stage { position: relative; background: #000; display: grid; place-items: center; overflow: hidden; }
@@ -74,3 +76,16 @@ body { overflow: hidden; }
   .layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   body { overflow: auto; }
 }
+
+.host-qr-row { display: flex; gap: 16px; align-items: center; text-align: left; max-width: 460px; margin: 8px auto 16px; padding: 14px; border-radius: var(--radius); background: var(--bg-raised); border: 1px solid var(--line); }
+.host-qr-row p { font-size: 15px !important; margin: 0; }
+.host-qr-row .host-qr { width: 104px; height: 104px; flex: none; }
+.host-qr, .audience-qr { background: #fff; border-radius: 10px; padding: 6px; }
+
+.links { position: fixed; inset: 0; z-index: 30; background: rgba(8, 7, 12, .94); display: grid; place-content: center; gap: 24px; text-align: center; padding: 24px; }
+.links-inner { display: flex; gap: 32px; flex-wrap: wrap; justify-content: center; }
+.link-card { background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; width: 300px; }
+.link-card img { width: 200px; height: 200px; margin: 0 auto 12px; }
+.link-card h3 { margin: 0 0 4px; font-family: var(--font-display); font-size: 22px; }
+.link-card p { margin: 4px 0 0; font-size: 14px; }
+.audience-url { overflow-wrap: anywhere; }
