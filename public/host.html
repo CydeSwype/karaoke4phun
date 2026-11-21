@@ -15,11 +15,15 @@
       <h1 class="logo">karaoke<b>4</b>phun</h1>
       <p class="dim">Put this screen on the TV. Everyone joins from their phone.</p>
       <button id="start-btn" class="btn big">Start the party</button>
-      <p class="faint small-print">Starting turns on sound (browsers need a click first).<br>Shortcuts: Space pause · N skip · F fullscreen</p>
+      <div class="host-qr-row">
+        <img class="host-qr" alt="QR code for host controls">
+        <p class="dim">📱 <strong>Host?</strong> Scan this with your phone to reorder the queue and control the TV. Keep it to yourself.</p>
+      </div>
+      <p class="faint small-print">Starting turns on sound (browsers need a click first).<br>Shortcuts: Space pause · N skip · S sidebar · M music · H host links · F fullscreen</p>
     </div>
   </div>
 
-  <main class="layout">
+  <main class="layout" id="layout">
     <section class="stage">
       <div class="player-frame"><div id="player"></div></div>
 
@@ -64,10 +68,28 @@
     </aside>
   </main>
 
+  <div id="links" class="links hidden">
+    <div class="links-inner">
+      <div class="link-card">
+        <img class="host-qr" alt="QR code for host controls">
+        <h3>Host controls</h3>
+        <p class="dim">Scan with your phone. Keep it to yourself.</p>
+      </div>
+      <div class="link-card">
+        <img class="audience-qr" alt="QR code for the audience screen">
+        <h3>Audience screen</h3>
+        <p class="dim">Open on a second TV or laptop:</p>
+        <p class="audience-url"></p>
+      </div>
+    </div>
+    <p class="faint">Press H to close</p>
+  </div>
+
   <div class="toasts" id="toasts"></div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/common.js"></script>
+  <script src="/music.js"></script>
   <script src="/host.js"></script>
 </body>
 </html>

@@ -38,6 +38,7 @@
           <input id="code" maxlength="4" placeholder="CODE" autocomplete="off" required aria-label="Party code">
           <button class="btn">Join</button>
         </form>
+        <a href="#" id="audience" class="faint" style="font-size:14px">or open the audience screen for this code</a>
       </div>
     </div>
   </main>
@@ -45,6 +46,12 @@
     document.getElementById('join').addEventListener('submit', (e) => {
       e.preventDefault();
       location.href = '/r/' + document.getElementById('code').value.trim().toUpperCase();
+    });
+    document.getElementById('audience').addEventListener('click', (e) => {
+      e.preventDefault();
+      const code = document.getElementById('code').value.trim().toUpperCase();
+      if (code.length === 4) location.href = '/a/' + code;
+      else document.getElementById('code').focus();
     });
   </script>
 </body>

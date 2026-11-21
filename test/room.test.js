@@ -83,3 +83,58 @@ test('room codes avoid taken codes and confusing letters', () => {
   const code = makeRoomCode(new Set(['AAAA']));
   assert.match(code, /^[A-HJ-NP-Z]{4}$/);
 });
+
+test('host reordering switches to custom order; new songs go to the end', () => {
+  const room = party('A', 'B', 'C');
+  room.addSong('A', vid(1));
+  room.addSong('A', vid(2));
+  room.addSong('B', vid(3));
+  room.addSong('C', vid(4));
+  // fair: A1 B3 C4 A2 -> move C4 to the top
+  const c4 = room.upcoming()[2];
+  room.moveSong(c4.id, 0);
+  assert.equal(room.mode, 'custom');
+  room.addSong('B', vid(5));
+  assert.deepEqual(order(room), ['C:Song 4', 'A:Song 1', 'B:Song 3', 'A:Song 2', 'B:Song 5']);
+  assert.equal(room.advance().title, 'Song 4');
+});
+
+test('switching back to fair order restores the rotation', () => {
+  const room = party('A', 'B');
+  room.addSong('A', vid(1));
+  room.addSong('A', vid(2));
+  room.addSong('B', vid(3));
+  room.moveSong(room.upcoming()[2].id, 2); // no-op move still switches mode
+  room.moveSong(room.upcoming()[1].id, 2); // A1 A2 B3
+  assert.deepEqual(order(room), ['A:Song 1', 'A:Song 2', 'B:Song 3']);
+  room.useFairOrder();
+  assert.deepEqual(order(room), ['A:Song 1', 'B:Song 3', 'A:Song 2']);
+});
+
+test('guests added by name are one singer, and sung counts add up', () => {
+  const room = party('A');
+  const g1 = room.upsertGuest('Mom');
+  const g2 = room.upsertGuest(' mom ');
+  assert.equal(g1, g2);
+  room.addSong(g1.id, vid(1));
+  room.addSong('A', vid(2));
+  room.advance();
+  room.advance();
+  const counts = Object.fromEntries(room.snapshot().singers.map((s) => [s.name, s.sung]));
+  assert.deepEqual(counts, { A: 1, mom: 1 });
+});
+
+test('replacing a song keeps its singer and place; only owner or host may', () => {
+  const room = party('A', 'B');
+  const a = room.addSong('A', vid(1));
+  room.addSong('B', vid(2));
+  assert.throws(() => room.replaceSong(a.id, vid(9), { singerId: 'B' }));
+  room.replaceSong(a.id, vid(9), { isHost: true });
+  assert.deepEqual(order(room), ['A:Song 9', 'B:Song 2']);
+  room.replaceSong(a.id, vid(8), { singerId: 'A' });
+  assert.equal(room.upcoming()[0].videoId, vid(8).videoId);
+});
+
+test('the TV shows the sidebar and plays between-song music by default', () => {
+  assert.deepEqual(new Room('TEST').display, { sidebar: true, music: true });
+});

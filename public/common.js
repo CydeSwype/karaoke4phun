@@ -32,7 +32,7 @@ function toast(message, { error = false, ms = 3500 } = {}) {
   t.className = `toast${error ? ' error' : ''}`;
   t.textContent = message;
   box.append(t);
-  setTimeout(() => t.remove(), ms);
+  setTimeout(() => { t.classList.add('leaving'); setTimeout(() => t.remove(), 250); }, ms);
 }
 
 /** socket.emit that resolves with the server's reply, or rejects with its error. */

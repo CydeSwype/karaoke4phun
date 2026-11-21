@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomBytes } from 'node:crypto';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // no I or O, which get misread
 
@@ -10,15 +10,22 @@ export function makeRoomCode(taken = new Set()) {
   }
 }
 
+export const isHostKey = (k) => /^[a-f0-9]{16}$/.test(String(k ?? ''));
+
 /**
- * One karaoke party. Songs are played in a fair rotation: every singer gets one
- * turn per round, and someone who joins mid-round goes to the back of it.
+ * One karaoke party. By default songs play in a fair rotation: every singer gets one
+ * turn per round, and someone who joins mid-round goes to the back of it. Once the host
+ * reorders the queue by hand it switches to a custom order, where new songs go to the end,
+ * until the host switches back.
  */
 export class Room {
-  constructor(code) {
+  constructor(code, hostKey) {
     this.code = code;
-    this.singers = new Map(); // clientId -> { id, name, turnKey }
-    this.pending = []; // entries in the order they were added
+    this.hostKey = isHostKey(hostKey) ? hostKey : randomBytes(8).toString('hex');
+    this.singers = new Map(); // id -> { id, name, turnKey, sung }
+    this.pending = []; // in 'fair' mode: the order songs were added; in 'custom' mode: play order
+    this.mode = 'fair';
+    this.display = { sidebar: true, music: true }; // what the TV shows; set from the host's phone
     this.nowPlaying = null;
     this.history = [];
     this.clock = 0; // increases every time someone takes a turn or joins the rotation
@@ -34,7 +41,7 @@ export class Room {
     const clean = String(name ?? '').trim().slice(0, 24) || 'Singer';
     const existing = this.singers.get(id);
     if (existing) existing.name = clean;
-    else this.singers.set(id, { id, name: clean, turnKey: null });
+    else this.singers.set(id, { id, name: clean, turnKey: null, sung: 0 });
     this.touch();
     return this.singers.get(id);
   }
@@ -42,7 +49,7 @@ export class Room {
   addSong(singerId, video) {
     const singer = this.singers.get(singerId);
     if (!singer) throw new Error('Join the party before adding songs');
-    if (!video?.videoId || !/^[\w-]{11}$/.test(video.videoId)) throw new Error('Invalid video');
+    const fields = this.#videoFields(video);
 
     // Someone not in the rotation joins it at the back of the current round: after everyone
     // still waiting, but before the current singer comes round again.
@@ -54,16 +61,58 @@ export class Room {
     const entry = {
       id: randomUUID(),
       singerId,
-      videoId: video.videoId,
-      title: String(video.title ?? 'Untitled').slice(0, 200),
-      channel: String(video.channel ?? '').slice(0, 100),
-      thumbnail: video.thumbnail ?? `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`,
-      duration: Number.isFinite(video.duration) ? video.duration : null,
+      ...fields,
       addedAt: Date.now(),
     };
     this.pending.push(entry);
     this.touch();
     return entry;
+  }
+
+  /** A singer added by the host by name, for someone without a phone. Same name, same singer. */
+  upsertGuest(name) {
+    const clean = String(name ?? '').trim().slice(0, 24);
+    if (!clean) throw new Error('Enter a name');
+    return this.upsertSinger(`guest:${clean.toLowerCase()}`, clean);
+  }
+
+  /** Host moves a song to a new position in the upcoming list; switches to custom order. */
+  moveSong(entryId, toIndex) {
+    const order = this.upcoming();
+    const from = order.findIndex((e) => e.id === entryId);
+    if (from === -1) throw new Error('That song is no longer in the queue');
+    const to = Math.max(0, Math.min(order.length - 1, Math.trunc(Number(toIndex) || 0)));
+    order.splice(to, 0, ...order.splice(from, 1));
+    this.pending = order;
+    this.mode = 'custom';
+    this.touch();
+  }
+
+  /** Back to automatic fair rotation. */
+  useFairOrder() {
+    this.mode = 'fair';
+    this.touch();
+  }
+
+  /** Swap a queued song's video (e.g. a better karaoke version), keeping its singer and place. */
+  replaceSong(entryId, video, { singerId, isHost = false } = {}) {
+    const entry = this.pending.find((e) => e.id === entryId);
+    if (!entry) throw new Error('That song is no longer in the queue');
+    if (!isHost && entry.singerId !== singerId) throw new Error('You can only change your own songs');
+    Object.assign(entry, this.#videoFields(video));
+    this.touch();
+    return entry;
+  }
+
+  #videoFields(video) {
+    if (!video?.videoId || !/^[\w-]{11}$/.test(video.videoId)) throw new Error('Invalid video');
+    return {
+      videoId: video.videoId,
+      title: String(video.title ?? 'Untitled').slice(0, 200),
+      channel: String(video.channel ?? '').slice(0, 100),
+      thumbnail: video.thumbnail ?? `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`,
+      duration: Number.isFinite(video.duration) ? video.duration : null,
+    };
   }
 
   removeSong(entryId, { singerId, isHost = false } = {}) {
@@ -77,6 +126,7 @@ export class Room {
 
   /** Pending entries in the order they will play. */
   upcoming() {
+    if (this.mode === 'custom') return [...this.pending];
     const bySinger = new Map();
     for (const e of this.pending) {
       if (!bySinger.has(e.singerId)) bySinger.set(e.singerId, []);
@@ -108,7 +158,10 @@ export class Room {
     if (next) {
       this.pending = this.pending.filter((e) => e.id !== next.id);
       const singer = this.singers.get(next.singerId);
-      if (singer) singer.turnKey = ++this.clock;
+      if (singer) {
+        singer.turnKey = ++this.clock;
+        singer.sung += 1;
+      }
     }
     this.joiners = 0;
     // Singers with nothing left queued drop out of the rotation; they rejoin at the back.
@@ -127,7 +180,15 @@ export class Room {
       nowPlaying: withName(this.nowPlaying),
       upcoming: this.upcoming().map(withName),
       history: this.history.slice(0, 10).map(withName),
-      singerCount: this.singers.size,
+      mode: this.mode,
+      display: this.display,
+      singers: [...this.singers.values()].map((s) => ({
+        id: s.id,
+        name: s.name,
+        sung: s.sung,
+        queued: this.pending.filter((e) => e.singerId === s.id).length,
+        guest: s.id.startsWith('guest:'),
+      })),
     };
   }
 }

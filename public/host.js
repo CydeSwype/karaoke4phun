@@ -22,13 +22,21 @@ let intermissionTimer = null;
 
 async function openRoom() {
   try {
-    const { code } = await call(socket, 'host:open', { code: store.get('hostCode') });
+    const { code, hostKey } = await call(socket, 'host:open', { code: store.get('hostCode'), hostKey: store.get('hostKey') });
     store.set('hostCode', code);
+    store.set('hostKey', hostKey);
     const { baseUrl } = await fetch('/api/config').then((r) => r.json());
     const joinUrl = `${baseUrl}/r/${code}`;
+    const hostUrl = `${joinUrl}#host=${hostKey}`;
+    const audienceUrl = `${baseUrl}/a/${code}`;
+    const qr = (url) => `/api/qr?url=${encodeURIComponent(url)}`;
+    const bare = (url) => url.replace(/^https?:\/\//, '');
     $('#room-code').textContent = code;
-    $$('.join-url').forEach((n) => (n.textContent = joinUrl.replace(/^https?:\/\//, '')));
-    $$('.qr').forEach((img) => (img.src = `/api/qr?url=${encodeURIComponent(joinUrl)}`));
+    $$('.join-url').forEach((n) => (n.textContent = bare(joinUrl)));
+    $$('.qr').forEach((img) => (img.src = qr(joinUrl)));
+    $$('.host-qr').forEach((img) => (img.src = qr(hostUrl)));
+    $$('.audience-qr').forEach((img) => (img.src = qr(audienceUrl)));
+    $('.audience-url').textContent = bare(audienceUrl);
   } catch (err) {
     toast(err.message, { error: true });
   }
@@ -41,6 +49,7 @@ socket.on('room:state', (s) => {
   state = s;
   renderSidebar();
   syncPlayback();
+  syncMusic();
 });
 socket.on('player:command', ({ action }) => {
   if (!playerReady || !state?.nowPlaying) return;
@@ -71,6 +80,7 @@ function renderSidebar() {
   $('#empty-next').classList.toggle('hidden', state.upcoming.length > 0);
   $('#idle').classList.toggle('hidden', Boolean(now));
   $('.join').classList.toggle('hidden', !now); // the idle screen already shows a big QR code
+  $('#layout').classList.toggle('no-side', state.display?.sidebar === false);
 }
 
 $('#up-next').addEventListener('click', (ev) => {
@@ -87,6 +97,8 @@ function syncPlayback() {
     clearIntermission();
     loadedEntryId = null;
     player.stopVideo();
+    clearTimeout(statusTimer);
+    socket.emit('player:status', { entryId: null, playing: false });
     return;
   }
   if (now.id === loadedEntryId) return;
@@ -95,8 +107,17 @@ function syncPlayback() {
   showIntermission(now, () => player.loadVideoById(now.videoId));
 }
 
+// Background music plays whenever nothing is on the player: waiting for the first song, or between songs.
+function syncMusic() {
+  const gap = !state?.nowPlaying || intermissionTimer !== null;
+  if (started && gap && state?.display?.music !== false) MUSIC.play();
+  else MUSIC.stop();
+}
+
 function showIntermission(entry, then) {
   clearIntermission();
+  clearTimeout(statusTimer);
+  socket.emit('player:status', { entryId: null, playing: false }); // nothing on screen yet
   $('#im-singer').textContent = entry.singerName;
   $('#im-title').textContent = cleanTitle(entry.title);
   $('#intermission').classList.remove('hidden');
@@ -110,12 +131,29 @@ function showIntermission(entry, then) {
       then();
     }
   }, 1000);
+  syncMusic();
 }
 
 function clearIntermission() {
   clearInterval(intermissionTimer);
   intermissionTimer = null;
   $('#intermission').classList.add('hidden');
+  syncMusic();
+}
+
+let statusTimer = null;
+function reportStatus() {
+  if (!playerReady) return;
+  const playing = player.getPlayerState() === YT.PlayerState.PLAYING;
+  socket.emit('player:status', {
+    entryId: loadedEntryId,
+    videoId: state?.nowPlaying?.videoId,
+    playing,
+    time: player.getCurrentTime?.() ?? 0,
+  });
+  // While playing, keep reporting so the audience screen stays in sync.
+  clearTimeout(statusTimer);
+  if (playing) statusTimer = setTimeout(reportStatus, 2000);
 }
 
 function songFinished(error) {
@@ -136,9 +174,7 @@ window.onYouTubeIframeAPIReady = () => {
       },
       onStateChange: ({ data }) => {
         if (data === YT.PlayerState.ENDED) songFinished();
-        if (data === YT.PlayerState.PLAYING || data === YT.PlayerState.PAUSED) {
-          socket.emit('player:status', { playing: data === YT.PlayerState.PLAYING });
-        }
+        if ([YT.PlayerState.PLAYING, YT.PlayerState.PAUSED, YT.PlayerState.ENDED].includes(data)) reportStatus();
       },
       onError: ({ data }) => songFinished(YT_ERRORS[data] ?? `error ${data}`),
     },
@@ -147,6 +183,8 @@ window.onYouTubeIframeAPIReady = () => {
 
 $('#start-btn').addEventListener('click', () => {
   started = true;
+  MUSIC.unlock(); // needs this click to be allowed to make sound
+  syncMusic();
   $('#start').classList.add('hidden');
   const s = document.createElement('script');
   s.src = 'https://www.youtube.com/iframe_api';
@@ -156,8 +194,16 @@ $('#start-btn').addEventListener('click', () => {
 // ---- keyboard ---------------------------------------------------------------------
 
 document.addEventListener('keydown', (ev) => {
-  if (!started || ev.target.closest('input')) return;
+  if (ev.target.closest('input')) return;
   const key = ev.key.toLowerCase();
+  if (key === 'h') return $('#links').classList.toggle('hidden');
+  if (!started) return;
+  if (key === 's' && state) {
+    call(socket, 'admin:display', { sidebar: state.display?.sidebar === false }).catch(() => {});
+  }
+  if (key === 'm' && state) {
+    call(socket, 'admin:display', { music: state.display?.music === false }).catch(() => {});
+  }
   if (key === ' ' && playerReady) {
     ev.preventDefault();
     player.getPlayerState() === YT.PlayerState.PLAYING ? player.pauseVideo() : player.playVideo();
