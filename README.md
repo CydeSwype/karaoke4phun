@@ -63,6 +63,10 @@ The host link carries a secret key (`#host=…`). The phone remembers it and rem
 
 Parties live in memory. If the server restarts, the TV gets the same party code back and phones reconnect, but the queue starts empty.
 
+## Hosting it
+
+To run it at a public address (HTTPS, works from any network), see [DEPLOY.md](DEPLOY.md).
+
 ## Installing on phones
 
 Phones see an "Add to home screen" banner after joining. The installed app opens the landing page, where you enter that week's party code. Host phones scan the host QR code again each party, since the host key is per party.

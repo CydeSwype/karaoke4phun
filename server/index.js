@@ -5,6 +5,7 @@ import express from 'express';
 import { Server } from 'socket.io';
 import QRCode from 'qrcode';
 import { Room, makeRoomCode, isHostKey } from './room.js';
+import { createLimiter, limitRequests } from './ratelimit.js';
 import { search, lookup, parseVideoId, loadCache, hasApiKey } from './youtube.js';
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -19,8 +20,25 @@ function publicBaseUrl() {
   return `http://localhost:${PORT}`;
 }
 
+const MAX_ROOMS = 500;
+
+/** The visitor's address for a socket, honouring the proxy's X-Forwarded-For when TRUST_PROXY is set. */
+function clientIp(socket) {
+  const hops = Number(TRUST_PROXY);
+  const forwarded = String(socket.handshake.headers['x-forwarded-for'] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  if (hops > 0 && forwarded.length) return forwarded[Math.max(0, forwarded.length - hops)];
+  return socket.handshake.address;
+}
 const rooms = new Map();
 const app = express();
+// Behind nginx, trust its X-Forwarded-* headers so limits apply per real visitor, not per proxy.
+const TRUST_PROXY = process.env.TRUST_PROXY ? Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY : false;
+if (TRUST_PROXY) app.set('trust proxy', TRUST_PROXY);
+
+// Search costs YouTube API quota and rooms cost memory, so cap what any one address can do.
+const searchLimiter = createLimiter({ windowMs: 60_000, max: 30 });
+const qrLimiter = createLimiter({ windowMs: 60_000, max: 60 });
+const newRoomLimiter = createLimiter({ windowMs: 60 * 60_000, max: 10 });
 const server = http.createServer(app);
 const io = new Server(server);
 
@@ -30,14 +48,14 @@ app.get('/a/:code', (_req, res) => res.sendFile(path.resolve('public/audience.ht
 
 app.get('/api/config', (_req, res) => res.json({ baseUrl: publicBaseUrl(), searchEnabled: hasApiKey() }));
 
-app.get('/api/qr', async (req, res) => {
+app.get('/api/qr', limitRequests(qrLimiter), async (req, res) => {
   const url = String(req.query.url ?? '').slice(0, 300);
   if (!/^https?:\/\//.test(url)) return res.status(400).end();
   const svg = await QRCode.toString(url, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
   res.type('image/svg+xml').set('Cache-Control', 'max-age=3600').send(svg);
 });
 
-app.get('/api/search', async (req, res) => {
+app.get('/api/search', limitRequests(searchLimiter), async (req, res) => {
   const q = String(req.query.q ?? '').trim().slice(0, 150);
   if (!q) return res.json({ results: [] });
   try {
@@ -87,8 +105,10 @@ io.on('connection', (socket) => {
     const wanted = String(code ?? '').toUpperCase();
     const existing = rooms.get(wanted);
     if (existing && existing.hostKey === hostKey) room = existing;
-    else if (!existing && /^[A-Z]{4}$/.test(wanted) && isHostKey(hostKey)) room = new Room(wanted, hostKey);
-    else room = new Room(makeRoomCode(new Set(rooms.keys())));
+    else {
+      if (rooms.size >= MAX_ROOMS || !newRoomLimiter.hit(clientIp(socket))) throw new Error('Too many new parties right now. Try again in a bit.');
+      room = !existing && /^[A-Z]{4}$/.test(wanted) && isHostKey(hostKey) ? new Room(wanted, hostKey) : new Room(makeRoomCode(new Set(rooms.keys())));
+    }
     rooms.set(room.code, room);
     role = 'tv';
     isAdmin = true;

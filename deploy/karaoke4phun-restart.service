@@ -1,0 +1,7 @@
+# /etc/systemd/system/karaoke4phun-restart.service
+[Unit]
+Description=Restart karaoke4phun
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl restart karaoke4phun.service

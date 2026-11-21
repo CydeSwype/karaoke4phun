@@ -1,0 +1,20 @@
+# /etc/systemd/system/karaoke4phun.service
+# Replace SITEUSER with the CloudPanel site user that owns the app directory.
+[Unit]
+Description=karaoke4phun
+After=network.target
+
+[Service]
+Type=simple
+User=SITEUSER
+WorkingDirectory=/home/SITEUSER/karaoke4phun
+# Reads PORT, YOUTUBE_API_KEY, PUBLIC_URL, TRUST_PROXY from the .env next to the app.
+ExecStart=/usr/bin/env node --env-file=/home/SITEUSER/karaoke4phun/.env server/index.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=full
+ReadWritePaths=/home/SITEUSER/karaoke4phun/data
+
+[Install]
+WantedBy=multi-user.target
