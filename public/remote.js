@@ -46,10 +46,14 @@ async function join(name) {
     $('#name-screen').classList.add('hidden');
     $('#app').classList.remove('hidden');
     if (state) render();
+    Install.offer();
   } catch (err) {
     // Already in the party: the TV may just not have reconnected after a server restart, so retry quietly.
     if (joined) setTimeout(() => socket.connected && join(name), 3000);
-    else toast(err.message, { error: true, ms: 6000 });
+    else {
+      toast(err.message, { error: true, ms: 6000 });
+      $('#other-party').classList.remove('hidden');
+    }
   }
 }
 

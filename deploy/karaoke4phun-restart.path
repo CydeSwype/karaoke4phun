@@ -1,0 +1,10 @@
+# /etc/systemd/system/karaoke4phun-restart.path
+# Each deploy replaces the RELEASE file, which restarts the app (same trick as the portfolio site).
+[Unit]
+Description=Restart karaoke4phun when a new release is deployed
+
+[Path]
+PathChanged=/home/SITEUSER/karaoke4phun/RELEASE
+
+[Install]
+WantedBy=multi-user.target

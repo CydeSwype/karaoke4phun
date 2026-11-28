@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0d0b14">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="karaoke4phun">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <title>karaoke4phun</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Inter:wght@400;500;600;700&display=swap">
@@ -26,9 +32,16 @@
       <input id="name-input" maxlength="24" autocomplete="nickname" placeholder="Your name" required>
       <button class="btn">Join the party</button>
     </form>
+    <p id="other-party" class="hint hidden"><a href="/">Joining a different party? Enter its code</a></p>
   </section>
 
   <section id="app" class="app hidden">
+    <div id="install" class="banner install hidden">
+      <div id="install-text"></div>
+      <button class="btn small" id="install-go">Install</button>
+      <button class="install-x" id="install-dismiss" aria-label="Dismiss">✕</button>
+    </div>
+
     <div class="now-card" id="now-card">
       <img class="thumb" id="now-thumb" alt="">
       <div class="now-info">
@@ -125,6 +138,7 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/common.js"></script>
+  <script src="/install.js"></script>
   <script src="/remote.js"></script>
 </body>
 </html>
